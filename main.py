@@ -1,44 +1,43 @@
-import streamlit as st
 import pandas as pd
-import seaborn as sns
+import snowflake.connector as sf
+from sklearn.model_selection import train_test_split
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score
+import streamlit as st
 import matplotlib.pyplot as plt
-from sklearn import datasets, svm
-import numpy as np
 
-st.title("Support Vector Machine Demo")
-# Load the Iris dataset
-iris = datasets.load_iris()
-iris_df = pd.DataFrame(iris.data, columns=iris.feature_names)
-iris_df['species'] = iris.target
+st.title("SVM Classifier on Iris Dataset")
+# Connect to Snowflake database
+conn = sf.connect(
+    user='harisathwik',
+    password='Harisathwik00...',
+    account='al33070.central-india.azure',
+    warehouse='COMPUTE_WH',
+    database='STREAMLIT',
+    schema='IRIS'
+)
 
-# Sidebar for selecting the range of data
-st.sidebar.header('Select Data Range')
-range_slider = st.sidebar.slider('Select a range of data:', 0, len(iris_df), (0, len(iris_df)))
+# Retrieve iris dataset from Snowflake database
+query = 'SELECT * FROM DT'
+iris_df = pd.read_sql(query, conn)
 
-# Filter the dataset based on the selected range
-iris_df_filtered = iris_df.iloc[range_slider[0]:range_slider[1]]
-
-# Create a Support Vector Machine model
-model = svm.SVC()
-
-# Train the model on the filtered dataset
-X = iris_df_filtered.iloc[:, :-1].values
-y = iris_df_filtered.iloc[:, -1].values
-model.fit(X, y)
-
-# Create a meshgrid to visualize the decision boundary
-x_min, x_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-y_min, y_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-xx, yy = np.meshgrid(np.arange(x_min, x_max, 0.02),
-                     np.arange(y_min, y_max, 0.02))
-
-# Make predictions on the meshgrid
-Z = model.predict(np.c_[xx.ravel(), yy.ravel(), np.zeros_like(xx.ravel()), np.zeros_like(xx.ravel())])
-Z = Z.reshape(xx.shape)
-
-# Plot the decision boundary and the data points
+# Plot iris dataset
 fig, ax = plt.subplots()
-sns.scatterplot(data=iris_df_filtered, x='sepal length (cm)', y='sepal width (cm)', hue='species', ax=ax)
-ax.contourf(xx, yy, Z, alpha=0.3)
-ax.set_title('SVM Decision Boundary')
+ax.scatter(iris_df['SEPAL_LENGTH'], iris_df['SEPAL_WIDTH'], c=iris_df['SPECIES'])
+ax.set_xlabel('Sepal Length')
+ax.set_ylabel('Sepal Width')
 st.pyplot(fig)
+
+# Implement SVM on iris dataset
+X = iris_df.iloc[:, :-1] # Features
+y = iris_df.iloc[:, -1] # Target variable
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42) # Split data into training and testing sets
+clf = SVC(kernel='linear') # Create SVM classifier
+clf.fit(X_train, y_train) # Fit classifier on training data
+y_pred = clf.predict(X_test) # Make predictions on testing data
+accuracy = accuracy_score(y_test, y_pred) # Calculate accuracy score
+
+# Display results using Streamlit
+st.write('Accuracy: ', accuracy)
+st.write('Number of training examples: ', X_train.shape[0])
+st.write('Number of testing examples: ', X_test.shape[0])
