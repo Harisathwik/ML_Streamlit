@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 st.title("SVM Classifier on Iris Dataset")
 # Connect to Snowflake database
 conn = sf.connect(
-    user='harisathwik',
-    password='Harisathwik00...',
-    account='al33070.central-india.azure',
-    warehouse='COMPUTE_WH',
-    database='STREAMLIT',
-    schema='IRIS'
+    account=st.secrets.connections.snowpark.account,
+    user=st.secrets.connections.snowpark.user,
+    password=st.secrets.connections.snowpark.password,
+    database=st.secrets.connections.snowpark.database,
+    schema=st.secrets.connections.snowpark.schema,
+    warehouse=st.secrets.connections.snowpark.warehouse
 )
 
 # Retrieve iris dataset from Snowflake database
